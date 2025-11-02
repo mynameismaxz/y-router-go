@@ -1,0 +1,168 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Environment variables - keep secrets out of version control
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.lnk
+
+# Binary executables - project specific
+/bin/
+/server
+/bin/server
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Generated files
+/coverage.out
+/coverage.html
+*.cover
+
+# Local development files
+/local
+/local_config.*
+
+# Build artifacts
+dist/
+build/
+/anthropic-openai-gateway
+
+# Core dump files
+core
+core.*
+
+# Profiling data
+*.prof
+*.pprof
+*.cpu
+*.mem
+*.trace
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Package manager files
+.yarn/*
+.pnp.*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Application specific
+/storage/
+/data/
+/uploads/
+/backups/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.p12
+
+# Secrets and sensitive configuration
+secrets/
+.secrets/
+
+# Monitoring and metrics
+/metrics/*
+!.gitkeep
+
+# kiro file
+.kiro
+
+# binary file
+/bin
