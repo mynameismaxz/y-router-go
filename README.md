@@ -4,6 +4,8 @@ A production-grade, high-performance Go gateway service that acts as a universal
 
 ## 🎯 Project Inspiration
 
+**Go implemented y-router that transform Claude Code to use with Openrouter/OpenAI. Original version from https://github.com/luohy15/y-router**
+
 This project was inspired by and is a Go implementation of concepts from the original **[y-router](https://github.com/luohy15/y-router)** project written in TypeScript. The original y-router provides excellent routing and compatibility layer patterns for AI model APIs, and this Go version adapts those core concepts while adding enterprise-grade features optimized for production workloads.
 
 ## 🚀 Core Features
