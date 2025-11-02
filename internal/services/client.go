@@ -43,6 +43,8 @@ type HTTPClient struct {
 	streamingConfig  *config.StreamingConfig
 	connectionHealth *ConnectionHealth
 	transport        *http.Transport
+	config           *config.Config
+	logger           StructuredLogger
 }
 
 // NewHTTPClient creates a new HTTP client for OpenRouter API with enhanced streaming support
@@ -102,6 +104,8 @@ func NewHTTPClientWithStreamingConfig(cfg *config.Config, streamingCfg *config.S
 		streamingConfig:  streamingCfg,
 		connectionHealth: connectionHealth,
 		transport:        transport,
+		config:           cfg,
+		logger:           NewStructuredLogger(nil),
 	}
 }
 
@@ -111,6 +115,122 @@ func (c *HTTPClient) SendRequest(ctx context.Context, req *models.OpenAIRequest,
 	req.Stream = false
 
 	return c.sendRequest(ctx, req, apiKey, false)
+}
+
+// logDebugRequest logs HTTP request details when log level is debug
+func (c *HTTPClient) logDebugRequest(httpReq *http.Request, reqBody []byte, requestID string) {
+	if strings.ToLower(c.config.LogLevel) != "debug" {
+		return
+	}
+
+	logEntry := map[string]interface{}{
+		"timestamp":    time.Now().Format(time.RFC3339),
+		"level":        "debug",
+		"component":    "http_client",
+		"event":        "http_request",
+		"request_id":   requestID,
+		"method":       httpReq.Method,
+		"url":          httpReq.URL.String(),
+		"content_type": httpReq.Header.Get("Content-Type"),
+	}
+
+	// Add headers (excluding sensitive ones)
+	headers := make(map[string]string)
+	for name, values := range httpReq.Header {
+		if !isSensitiveHeader(name) {
+			headers[name] = strings.Join(values, ", ")
+		} else {
+			headers[name] = "[REDACTED]"
+		}
+	}
+	logEntry["headers"] = headers
+
+	// Add request body for smaller requests
+	if len(reqBody) > 0 && len(reqBody) < 10240 { // Only log bodies smaller than 10KB
+		var jsonBody interface{}
+		if err := json.Unmarshal(reqBody, &jsonBody); err == nil {
+			logEntry["request_body"] = jsonBody
+		} else {
+			logEntry["request_body"] = string(reqBody)
+		}
+	} else if len(reqBody) >= 10240 {
+		logEntry["request_body"] = fmt.Sprintf("[LARGE_BODY: %d bytes]", len(reqBody))
+	}
+
+	if c.logger != nil {
+		c.logger.Log(LogLevelDebug, "http_client", "sending HTTP request", logEntry)
+	}
+}
+
+// logDebugResponse logs HTTP response details when log level is debug
+func (c *HTTPClient) logDebugResponse(resp *http.Response, responseBody []byte, requestID string, duration time.Duration) {
+	if strings.ToLower(c.config.LogLevel) != "debug" {
+		return
+	}
+
+	logEntry := map[string]interface{}{
+		"timestamp":     time.Now().Format(time.RFC3339),
+		"level":         "debug",
+		"component":     "http_client",
+		"event":         "http_response",
+		"request_id":    requestID,
+		"status_code":   resp.StatusCode,
+		"status":        resp.Status,
+		"duration_ms":   duration.Milliseconds(),
+		"content_type":  resp.Header.Get("Content-Type"),
+		"response_size": len(responseBody),
+	}
+
+	// Add response headers (excluding sensitive ones)
+	headers := make(map[string]string)
+	for name, values := range resp.Header {
+		if !isSensitiveHeader(name) {
+			headers[name] = strings.Join(values, ", ")
+		} else {
+			headers[name] = "[REDACTED]"
+		}
+	}
+	logEntry["headers"] = headers
+
+	// Add response body for smaller responses and non-streaming
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "text/event-stream") && len(responseBody) > 0 && len(responseBody) < 10240 {
+		var jsonBody interface{}
+		if err := json.Unmarshal(responseBody, &jsonBody); err == nil {
+			logEntry["response_body"] = jsonBody
+		} else {
+			logEntry["response_body"] = string(responseBody)
+		}
+	} else if len(responseBody) >= 10240 {
+		logEntry["response_body"] = fmt.Sprintf("[LARGE_RESPONSE: %d bytes]", len(responseBody))
+	} else if strings.Contains(contentType, "text/event-stream") {
+		logEntry["response_body"] = "[STREAMING_RESPONSE]"
+	}
+
+	if c.logger != nil {
+		c.logger.Log(LogLevelDebug, "http_client", "received HTTP response", logEntry)
+	}
+}
+
+// isSensitiveHeader checks if a header contains sensitive information
+func isSensitiveHeader(header string) bool {
+	sensitiveHeaders := []string{
+		"authorization",
+		"x-api-key",
+		"x-auth-token",
+		"cookie",
+		"set-cookie",
+		"x-access-token",
+		"x-refresh-token",
+	}
+
+	headerLower := strings.ToLower(header)
+	for _, sensitive := range sensitiveHeaders {
+		if headerLower == sensitive {
+			return true
+		}
+	}
+	return false
 }
 
 // SendStreamingRequest sends a streaming request to OpenRouter API with enhanced connection management
@@ -155,12 +275,12 @@ func (c *HTTPClient) sendRequest(ctx context.Context, req *models.OpenAIRequest,
 		return nil, err
 	}
 
-	// Marshal request to JSON
-	reqBody, err := json.Marshal(req)
+	// Build request body with provider configuration
+	reqBody, err := c.buildRequestBody(req)
 	if err != nil {
 		return nil, &models.APIError{
 			Code:    http.StatusInternalServerError,
-			Message: fmt.Sprintf("failed to marshal request: %s", err.Error()),
+			Message: fmt.Sprintf("failed to build request body: %s", err.Error()),
 			Type:    "internal_error",
 		}
 	}
@@ -179,16 +299,41 @@ func (c *HTTPClient) sendRequest(ctx context.Context, req *models.OpenAIRequest,
 	// Set headers
 	c.setRequestHeaders(httpReq, apiKey, isStreaming)
 
+	// Generate request ID for debug logging
+	requestID := generateRequestID()
+
+	// Log request details for debug
+	c.logDebugRequest(httpReq, reqBody, requestID)
+
 	// Use appropriate client based on streaming
 	client := c.client
 	if isStreaming {
 		client = c.streamingClient
 	}
 
-	// Send the request
+	// Send the request with timing
+	start := time.Now()
 	resp, err := client.Do(httpReq)
+	duration := time.Since(start)
+
 	if err != nil {
 		return nil, c.handleRequestError(err)
+	}
+
+	// For non-streaming responses, read and log the response body
+	if !isStreaming && strings.ToLower(c.config.LogLevel) == "debug" {
+		// Read response body for logging
+		responseBody, readErr := io.ReadAll(resp.Body)
+		if readErr == nil {
+			// Log response details
+			c.logDebugResponse(resp, responseBody, requestID, duration)
+
+			// Replace the body with a new reader
+			resp.Body = io.NopCloser(bytes.NewReader(responseBody))
+		}
+	} else if isStreaming {
+		// For streaming responses, just log headers and status
+		c.logDebugResponse(resp, nil, requestID, duration)
 	}
 
 	// Handle error responses
@@ -197,6 +342,18 @@ func (c *HTTPClient) sendRequest(ctx context.Context, req *models.OpenAIRequest,
 	}
 
 	return resp, nil
+}
+
+// buildRequestBody builds the request body with optional provider configuration
+func (c *HTTPClient) buildRequestBody(req *models.OpenAIRequest) ([]byte, error) {
+	// Set provider configuration if available and not already set
+	if c.config != nil && len(c.config.ProviderOrder) > 0 && req.Provider == nil {
+		req.Provider = &models.ProviderConfig{
+			Order: c.config.ProviderOrder,
+		}
+	}
+
+	return json.Marshal(req)
 }
 
 // setRequestHeaders sets the appropriate headers for the request
@@ -471,6 +628,7 @@ func NewHTTPClientWithConfig(cfg *config.Config, clientCfg *ClientConfig) *HTTPC
 		streamingClient: streamingClient,
 		baseURL:         strings.TrimSuffix(cfg.OpenRouterBaseURL, "/"),
 		requestTimeout:  clientCfg.RequestTimeout,
+		config:          cfg,
 	}
 }
 
@@ -603,6 +761,11 @@ func generateConnectionID() string {
 	bytes := make([]byte, 8)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
+}
+
+// generateRequestID generates a unique request identifier
+func generateRequestID() string {
+	return fmt.Sprintf("req_%d_%s", time.Now().UnixNano(), generateConnectionID()[:8])
 }
 
 // Connection management methods for HTTPClient

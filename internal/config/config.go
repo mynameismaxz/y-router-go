@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,7 +19,29 @@ type Config struct {
 	OpenRouterBaseURL string           `json:"openrouter_base_url"`
 	LogLevel          string           `json:"log_level"`
 	ShutdownTimeout   time.Duration    `json:"shutdown_timeout"`
+	ProviderOrder     []string         `json:"provider_order"`
 	Streaming         *StreamingConfig `json:"streaming"`
+}
+
+// parseProviderOrder parses a comma-separated list of providers from environment variable
+func parseProviderOrder(envVar string) []string {
+	if envVar == "" {
+		return nil
+	}
+
+	providers := strings.Split(envVar, ",")
+	var result []string
+	seen := make(map[string]bool)
+
+	for _, provider := range providers {
+		provider = strings.TrimSpace(provider)
+		if provider != "" && !seen[provider] {
+			result = append(result, provider)
+			seen[provider] = true
+		}
+	}
+
+	return result
 }
 
 // LoadFromEnv loads configuration from environment variables with defaults
@@ -34,6 +57,7 @@ func LoadFromEnv() (*Config, error) {
 		OpenRouterBaseURL: getEnvWithDefault("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 		LogLevel:          getEnvWithDefault("LOG_LEVEL", "info"),
 		ShutdownTimeout:   parseTimeoutWithDefault("SHUTDOWN_TIMEOUT", "30s"),
+		ProviderOrder:     parseProviderOrder(os.Getenv("OPENROUTER_PROVIDER_ORDER")),
 		Streaming:         streamingConfig,
 	}
 

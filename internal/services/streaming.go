@@ -39,6 +39,8 @@ type StreamConverter struct {
 	bufferManager BufferManager
 	errorHandler  StreamErrorHandler
 	streamManager StreamManager
+	logger        StructuredLogger
+	logLevel      string
 }
 
 // StreamBuffer handles buffering of incomplete JSON data
@@ -65,6 +67,8 @@ func NewStreamConverter(converter ConversionService) *StreamConverter {
 		bufferManager: NewStreamBufferManager(DefaultBufferConfig()),
 		errorHandler:  NewDefaultStreamErrorHandler(),
 		streamManager: nil, // Will be set by the API handler
+		logger:        NewStructuredLogger(nil),
+		logLevel:      "info",
 	}
 }
 
@@ -75,6 +79,8 @@ func NewStreamConverterWithConfig(converter ConversionService, streamingConfig *
 		bufferManager: NewStreamBufferManagerFromConfig(streamingConfig),
 		errorHandler:  NewDefaultStreamErrorHandler(),
 		streamManager: nil, // Will be set by the API handler
+		logger:        NewStructuredLogger(nil),
+		logLevel:      streamingConfig.LogLevel,
 	}
 }
 
@@ -90,12 +96,46 @@ func NewStreamConverterWithComponents(
 		bufferManager: bufferManager,
 		errorHandler:  errorHandler,
 		streamManager: streamManager,
+		logger:        NewStructuredLogger(nil),
+		logLevel:      "info",
 	}
 }
 
 // SetStreamManager sets the stream manager for lifecycle tracking
 func (sc *StreamConverter) SetStreamManager(streamManager StreamManager) {
 	sc.streamManager = streamManager
+}
+
+// SetLogLevel sets the log level for debug logging
+func (sc *StreamConverter) SetLogLevel(logLevel string) {
+	sc.logLevel = logLevel
+}
+
+// logDebugStreamData logs streaming data when log level is debug
+func (sc *StreamConverter) logDebugStreamData(eventType, data string, streamID string) {
+	if strings.ToLower(sc.logLevel) != "debug" {
+		return
+	}
+
+	logEntry := map[string]interface{}{
+		"timestamp":  time.Now().Format(time.RFC3339),
+		"level":      "debug",
+		"component":  "stream_converter",
+		"event":      "stream_data",
+		"stream_id":  streamID,
+		"event_type": eventType,
+	}
+
+	// Only log data for smaller chunks to avoid log spam
+	if len(data) < 1024 {
+		logEntry["data"] = data
+	} else {
+		logEntry["data"] = fmt.Sprintf("[LARGE_DATA: %d bytes]", len(data))
+	}
+
+	if sc.logger != nil {
+		sc.logger.Log(LogLevelDebug, "stream_converter", fmt.Sprintf("streaming %s event", eventType), logEntry)
+	}
 }
 
 // ConvertStream converts OpenAI streaming response to Anthropic streaming format
@@ -226,8 +266,14 @@ func (sc *StreamConverter) processStreamWithBuffering(ctx context.Context, opena
 		if strings.HasPrefix(line, "data: ") {
 			data := strings.TrimPrefix(line, "data: ")
 
+			// Log incoming stream data for debug
+			sc.logDebugStreamData("incoming_openai", data, "stream_converter")
+
 			// Check for stream end
 			if data == "[DONE]" {
+				// Log stream completion for debug
+				sc.logDebugStreamData("stream_complete", "[DONE]", "stream_converter")
+
 				// Send message_stop event
 				if err := sc.writeAnthropicEvent(writer, "message_stop", nil); err != nil {
 					return &StreamError{
@@ -799,6 +845,9 @@ func (sc *StreamConverter) writeAnthropicEvent(writer io.Writer, eventType strin
 		}
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
+
+	// Log outgoing Anthropic event for debug
+	sc.logDebugStreamData("outgoing_anthropic", string(eventJSON), "stream_converter")
 
 	// Write in SSE format
 	sseData := fmt.Sprintf("event: %s\ndata: %s\n\n", eventType, string(eventJSON))

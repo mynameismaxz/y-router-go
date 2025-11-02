@@ -386,6 +386,14 @@ func (scm *StreamingComponentManager) SetStreamConverter(converter *StreamConver
 	defer scm.mutex.Unlock()
 	scm.streamConverter = converter
 
+	// Set the log level from configuration
+	if converter != nil && scm.configManager != nil {
+		config := scm.configManager.GetConfig()
+		if config != nil {
+			converter.SetLogLevel(config.LogLevel)
+		}
+	}
+
 	// Create stream manager now that we have the converter
 	if converter != nil && scm.httpClient != nil {
 		scm.streamManager = NewStreamManager(scm.httpClient, converter)

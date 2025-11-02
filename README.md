@@ -948,4 +948,8 @@ We welcome contributions! Please follow our guidelines:
 
 **Built with ❤️ for the AI development community**
 
-*Last updated: January 2024*
+*Last updated: November 2025*
+
+#### 📋 Claude Code Integration
+
+This project includes specialized documentation for Claude Code users at [`CLAUDE.md`](CLAUDE.md), which provides detailed guidance on the codebase structure, build commands, and development workflows.

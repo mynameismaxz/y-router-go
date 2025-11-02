@@ -89,7 +89,7 @@ func main() {
 	}
 
 	// Setup middleware
-	setupMiddleware(app)
+	setupMiddleware(app, cfg)
 
 	// Setup routes
 	setupRoutes(app, apiHandler, healthHandler, staticHandler)
@@ -111,12 +111,17 @@ func main() {
 }
 
 // setupMiddleware configures all middleware for the application
-func setupMiddleware(app *fiber.App) {
+func setupMiddleware(app *fiber.App, cfg *config.Config) {
 	// Request ID middleware (should be first)
 	app.Use(middleware.RequestIDMiddleware())
 
+	// Debug request/response logging middleware (when log level is debug)
+	app.Use(middleware.DebugRequestResponseLogger(cfg.LogLevel))
+
 	// Logging middleware
-	app.Use(middleware.NewLogger())
+	loggingConfig := middleware.DefaultLoggingConfig()
+	loggingConfig.LogLevel = cfg.LogLevel
+	app.Use(middleware.NewLogger(loggingConfig))
 
 	// Recovery middleware
 	app.Use(middleware.NewRecovery())

@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+// ProviderConfig represents OpenRouter provider preferences
+type ProviderConfig struct {
+	Order []string `json:"order"`
+}
+
 // OpenAIRequest represents the request structure for OpenAI API
 type OpenAIRequest struct {
 	Model            string          `json:"model" validate:"required"`
@@ -21,6 +26,7 @@ type OpenAIRequest struct {
 	User             string          `json:"user,omitempty"`
 	Tools            []OpenAITool    `json:"tools,omitempty"`
 	ToolChoice       interface{}     `json:"tool_choice,omitempty"`
+	Provider         *ProviderConfig `json:"provider,omitempty"`
 }
 
 // OpenAIMessage represents a message in the OpenAI format
