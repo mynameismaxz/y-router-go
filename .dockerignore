@@ -1,0 +1,109 @@
+# Git directories
+.git
+.gitignore
+.gitmodules
+
+# Documentation files
+README.md
+*.md
+docs/
+.github/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.txt
+
+# Dependency directories
+vendor/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Development files
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+.air.toml
+
+# OS generated files
+Thumbs.db
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Test files
+*_test.go
+testdata/
+tests/
+
+# Coverage files
+*.cover
+coverage/
+
+# Performance profiles
+*.prof
+*.pprof
+
+# Temporary files
+cache/
+tmp/
+temp/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development data
+data/
+local/
+*.db
+*.sqlite
+
+# Backup files
+*.bak
+*.backup
+
+# CI/CD files
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+.github/workflows/
+
+# Monitoring and debugging
+debug/
+monitoring/
+scripts/
+
+# Architecture diagrams and design docs
+docs/architecture/
+*.puml
+*.drawio
+*.png
+*.jpg
+*.jpeg

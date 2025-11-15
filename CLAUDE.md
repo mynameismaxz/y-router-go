@@ -22,9 +22,38 @@ go mod download
 
 # Run directly without building
 go run ./cmd/server
+
+# Build Docker container (recommended)
+make build
+
+# Run Docker container
+make run
 ```
 
 **Go Version Required**: 1.25.1 or later
+
+## Docker Build Process
+
+The project uses a multi-stage Docker build with Podman compatibility. The build process:
+
+1. **Builder Stage**: Uses `golang:1.25.1-alpine` to compile the Go application
+2. **Runtime Stage**: Uses `alpine:3.19` for the minimal production container
+
+### Build Features
+
+- **Version Injection**: Git commit hash and build time are automatically injected via ldflags
+- **Security**: Builds as non-root user with proper file permissions
+- **Optimization**: Strips debug symbols and uses PIE compilation
+- **Health Checks**: Includes Docker health check configuration
+
+### Recent Build Fixes
+
+The following issues were recently resolved:
+
+1. **Git Command Fallback**: Added fallback for `git rev-parse` when not in a git repository
+2. **Variable Injection**: Changed from const to var declarations to allow ldflags injection
+3. **File Permissions**: Fixed ownership issues for non-root user builds
+4. **Static Content Copy**: Corrected COPY command syntax for static assets
 
 ## Development Commands
 
@@ -56,6 +85,18 @@ go run ./cmd/server
 - **Run the server without building**:
   ```bash
   go run ./cmd/server
+  ```
+- **Run server with hot reload** (requires air):
+  ```bash
+  air -c .air.toml
+  ```
+- **Run benchmarks**:
+  ```bash
+  go test -bench=. ./...
+  ```
+- **Generate test coverage**:
+  ```bash
+  go test -cover ./...
   ```
 
 These commands cover the most common development workflow steps for this Go codebase.
@@ -210,6 +251,9 @@ See `internal/models/common.go:11` for the `ModelMapper` implementation.
 - **Pre-built Binary**: A pre-built binary exists at `bin/server` but should rebuild after changes
 - **Static Content**: Static HTML pages are embedded in Go code via `internal/static/content.go`
 - **Middleware Stack**: Request ID → Logging → Recovery → CORS (in that order)
+- **Docker Build**: Uses multi-stage build with security hardening and version injection
+- **Git Integration**: Build process includes git commit hash injection with fallback for non-git environments
+- **Non-root Security**: Container runs as non-root user with proper file ownership setup
 
 ## Troubleshooting
 
@@ -224,7 +268,45 @@ go mod download  # Ensure dependencies are downloaded
 go version       # Verify Go 1.25.1+
 ```
 
+**Docker build errors**:
+```bash
+# Common Docker build issues and solutions:
+
+# 1. Git command fails (not in git repository)
+# Error: "fatal: not a git repository"
+# Solution: The build now includes fallback to "dev-build" when not in git
+
+# 2. Permission denied errors
+# Error: "permission denied" when building as non-root
+# Solution: File ownership is now properly set before switching users
+
+# 3. Version injection fails
+# Error: "const version" cannot be modified by ldflags
+# Solution: Changed to var declarations that can be injected
+
+# Clean rebuild if issues persist
+make build-clean
+
+# Build with debug symbols for troubleshooting
+make build-dev
+```
+
 **Configuration errors**: Check `.env` file format and validate environment variables using `internal/config/config.go:49`
+
+**Docker/Podman issues**:
+```bash
+# Check if Podman is running
+podman info
+
+# Clean up containers and images
+make clean
+
+# Check container logs
+make logs
+
+# Health check the running container
+make health
+```
 
 ## Important Files for Reference
 

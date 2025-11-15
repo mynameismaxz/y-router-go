@@ -19,7 +19,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const version = "1.0.0"
+// Version and build information (can be injected at build time via ldflags)
+var (
+	version   = "1.0.0"              // Can be set with -X main.version=...
+	buildTime = "unknown"            // Can be set with -X main.buildTime=...
+)
 
 func main() {
 	// Check for health check flag

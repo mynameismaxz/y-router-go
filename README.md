@@ -2,6 +2,66 @@
 
 A production-grade, high-performance Go gateway service that acts as a universal compatibility layer between different AI model providers. This service enables seamless integration with multiple LLM providers through a unified API format, supporting both Anthropic Claude and OpenAI/OpenRouter protocols with advanced streaming, monitoring, and resilience features.
 
+## 📖 Table of Contents
+
+- [🎯 Project Inspiration](#-project-inspiration)
+- [🚀 Core Features](#-core-features)
+- [📋 Advanced Architecture](#-advanced-architecture)
+  - [Enhanced Core Components](#enhanced-core-components)
+  - [Request Flow with Advanced Features](#request-flow-with-advanced-features)
+- [🛠️ Advanced Installation & Setup](#️-advanced-installation--setup)
+  - [Prerequisites](#prerequisites)
+  - [Build from Source](#build-from-source)
+  - [Advanced Environment Configuration](#advanced-environment-configuration)
+- [📡 Enhanced API Usage](#-enhanced-api-usage)
+  - [Messages Endpoint with Advanced Features](#messages-endpoint-with-advanced-features)
+  - [Advanced Streaming Support](#advanced-streaming-support)
+  - [Tool/Function Calling](#toolfuction-calling)
+- [🔧 Advanced Configuration & Management](#️-advanced-configuration--management)
+  - [Intelligent Model Mapping](#intelligent-model-mapping)
+  - [Enhanced Middleware Stack](#enhanced-middleware-stack)
+  - [Component Lifecycle Management](#component-lifecycle-management)
+- [🐳 Production Container Deployment](#️-production-container-deployment)
+  - [Multi-Stage Container Build](#multi-stage-container-build)
+  - [Container Configuration](#container-configuration)
+  - [Automated Installation Script](#automated-installation-script)
+- [🔍 Advanced Monitoring & Observability](#-advanced-monitoring--observability)
+  - [Comprehensive Health Endpoints](#comprehensive-health-endpoints)
+  - [Real-time Metrics Collection](#real-time-metrics-collection)
+  - [Circuit Breaker Monitoring](#circuit-breaker-monitoring)
+  - [Structured Logging with Context](#structured-logging-with-context)
+  - [Export Monitoring Data](#export-monitoring-data)
+- [🌐 Static Content](#-static-content)
+- [🧪 Advanced Testing & Development](#️-advanced-testing--development)
+  - [Comprehensive Testing Suite](#comprehensive-testing-suite)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Integration Testing Examples](#integration-testing-examples)
+- [📝 Advanced Logging & Observability](#-advanced-logging--observability)
+  - [Structured Logging System](#structured-logging-system)
+  - [Performance Telemetry](#performance-telemetry)
+- [🔒 Enhanced Security & Reliability](#-enhanced-security--reliability)
+  - [Comprehensive Security Features](#comprehensive-security-features)
+  - [Advanced Reliability Patterns](#advanced-reliability-patterns)
+  - [Error Classification & Recovery](#error-classification--recovery)
+- [🤝 Development & Contributing](#-development--contributing)
+  - [Development Workflow](#development-workflow)
+  - [Code Quality Standards](#code-quality-standards)
+  - [Development Tools](#development-tools)
+  - [Testing Guidelines](#testing-guidelines)
+- [📚 Advanced Topics](#-advanced-topics)
+  - [Custom Provider Integration](#custom-provider-integration)
+  - [Advanced Configuration Patterns](#advanced-configuration-patterns)
+  - [Performance Optimization](#performance-optimization)
+- [📊 Production Performance & Benchmarks](#-production-performance--benchmarks)
+  - [Performance Characteristics](#performance-characteristics)
+  - [Production Tuning Examples](#production-tuning-examples)
+  - [Scalability Features](#scalability-features)
+- [📄 Licensing & Support](#-licensing--support)
+  - [License](#license)
+  - [Support Channels](#support-channels)
+  - [Contributing Guidelines](#contributing-guidelines)
+- [📋 Claude Code Integration](#-claude-code-integration)
+
 ## 🎯 Project Inspiration
 
 **Go implemented y-router that transform Claude Code to use with Openrouter/OpenAI. Original version from https://github.com/luohy15/y-router**
@@ -303,11 +363,11 @@ The gateway features sophisticated component management:
 - **Graceful Shutdown**: Proper cleanup of all resources and connections
 - **Dependency Injection**: Modular component architecture for testing
 
-## 🐳 Production Docker Deployment
+## 🐳 Production Container Deployment
 
-### Multi-Stage Docker Build
+### Multi-Stage Container Build
 
-The project includes an optimized multi-stage Dockerfile:
+The project includes an optimized multi-stage Dockerfile that works with both Docker and Podman:
 
 ```dockerfile
 # Build stage
@@ -327,9 +387,9 @@ EXPOSE 8080
 CMD ["./gateway"]
 ```
 
-### Enhanced Docker Configuration
+### Container Configuration
 
-For production Docker deployments with health checks:
+For production container deployments with health checks (compatible with Docker and Podman):
 
 ```yaml
 version: '3.8'
