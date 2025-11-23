@@ -9,9 +9,12 @@ PODMAN=podman
 PORT=8081
 LOG_LEVEL=info
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+# Local Development
+GO_BIN := bin/gateway
+GO_MAIN := ./cmd/server
 
 # Default target
-.PHONY: help
+.PHONY: help run-local run-dev-local build-local build-dev-local test lint clean-local dev-setup-local dev-local
 
 # Show help information
 help:
@@ -48,7 +51,15 @@ help:
 	@echo "  make dev-setup          - Setup development environment"
 	@echo "  make dev-clean          - Clean development artifacts"
 	@echo ""
-	@echo "🌐 Pod Commands (for multi-container setups):"
+	@echo "💻 Local Development Commands:"
+	@echo "  make run-local          - Run with go run"
+	@echo "  make run-dev-local      - Run with hot reload (air)"
+	@echo "  make build-local        - Build optimized binary"
+	@echo "  make build-dev-local    - Build with debug symbols"
+	@echo "  make test               - Run tests with race detector"
+	@echo "  make lint               - Format, vet, and staticcheck"
+	@echo "  make clean-local        - Clean local binaries"
+	@echo ""
 	@echo "  make pod-create         - Create a pod for the service"
 	@echo "  make pod-run            - Run in a pod"
 	@echo "  make pod-stop           - Stop and remove pod"
@@ -83,6 +94,7 @@ run:
 		-e PORT=$(PORT) \
 		-e LOG_LEVEL=$(LOG_LEVEL) \
 		-e OPENROUTER_BASE_URL=$(OPENROUTER_BASE_URL) \
+		-e STREAMING_CONNECTION_TIMEOUT=120s \
 		--health-interval=30s \
 		--health-retries=3 \
 		--health-timeout=10s \
@@ -210,12 +222,12 @@ stats:
 	$(PODMAN) stats $(CONTAINER_NAME) --no-stream
 
 # Setup development environment
-dev-setup:
-	@echo "🔧 Setting up development environment..."
-	@if ! command -v air &> /dev/null; then \
-		echo "Installing air for hot reload..."; \
-		go install github.com/cosmtrek/air@latest; \
+dev-setup: dev-setup-local
+	@if ! command -v podman-compose &> /dev/null; then \
+		echo "Installing podman-compose..."; \
+		python3 -m pip install podman-compose; \
 	fi
+	@echo "✅ Full development environment ready (local + podman)"
 	@if ! command -v podman-compose &> /dev/null; then \
 		echo "Installing podman-compose..."; \
 		python3 -m pip install podman-compose; \
@@ -256,8 +268,47 @@ pod-stop:
 	$(PODMAN) pod rm $(POD_NAME) 2>/dev/null || true
 	@echo "✅ Pod stopped and removed"
 
-# Security commands
-security-scan:
+# Run locally with go run (restored)
+run-local:
+	@echo "🚀 Starting $(GO_MAIN) locally..."
+	@mkdir -p bin
+	@PORT=$(PORT) LOG_LEVEL=$(LOG_LEVEL) OPENROUTER_BASE_URL=$(OPENROUTER_BASE_URL) go run $(GO_MAIN)
+	@echo "✅ Local server ready at http://localhost:$(PORT)"
+
+# Build optimized local binary
+build-local:
+	@echo "📦 Building optimized binary $(GO_BIN)..."
+	@mkdir -p bin
+	@go build -ldflags="-s -w" -o $(GO_BIN) $(GO_MAIN)
+	@echo "✅ Local build completed! Run with ./$(GO_BIN)"
+
+# Build local binary with debug symbols
+build-dev-local:
+	@echo "📦 Building debug binary $(GO_BIN)..."
+	@mkdir -p bin
+	@go build -o $(GO_BIN) $(GO_MAIN)
+	# Run tests with race detector
+test:
+	@echo "🧪 Running tests with race detector..."
+	@go test -v -race ./...
+	@echo "✅ Tests passed!"
+
+# Lint code (format + vet + staticcheck)
+lint:
+	@echo "🔍 Linting code..."
+	@gofmt -s -w -l .
+	@go vet ./...
+	@staticcheck ./...
+	@echo "✅ Linting completed!"
+
+# Clean local build artifacts
+clean-local:
+	@echo "🧹 Cleaning local binaries..."
+	@rm -rf bin/
+	@echo "✅ Local cleanup completed!"
+
+# Local development workflow
+dev-local: dev-setup-local build-dev-local run-dev-local
 	@echo "🔒 Scanning image for vulnerabilities..."
 	$(PODMAN) scan $(IMAGE_NAME):$(IMAGE_TAG) || echo "❌ Security scan failed"
 
@@ -300,9 +351,9 @@ quick-start: build run health
 deploy-prod: build-clean run-prod health
 	@echo "🚀 Production deployment completed!"
 
-# Development workflow
-dev: build-dev run-dev
-	@echo "🎯 Development environment ready!"
+# Development workflow (local + podman)
+dev: dev-setup build-dev run-dev
+dev-local: dev-setup-local build-dev-local run-dev-local
 
 # Health check with retries
 health-retry:

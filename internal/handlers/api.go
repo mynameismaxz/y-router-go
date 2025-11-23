@@ -16,6 +16,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+const (
+	// Adjust request timeout to be 120 seconds for API requests (with longer context support)
+	requestTimeout = 120 * time.Second
+)
+
 // APIHandler handles API endpoint requests
 type APIHandler struct {
 	converter        services.ConversionService
@@ -98,7 +103,7 @@ func NewAPIHandlerWithComponents(
 // HandleMessages handles POST requests to "/v1/messages"
 func (h *APIHandler) HandleMessages(c *fiber.Ctx) error {
 	// Set request timeout
-	ctx, cancel := context.WithTimeout(c.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(c.Context(), requestTimeout)
 	defer cancel()
 
 	// Validate content type
